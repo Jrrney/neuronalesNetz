@@ -29,10 +29,6 @@ public abstract class Util {
 	 * @return Die aktualisierte Matrix.
 	 */
 	public static RealMatrix scalar(RealMatrix matrix, Function<Double, Double> function) {
-		return foreach(matrix, function);
-	}
-
-	public static RealMatrix foreach(RealMatrix matrix, Function<Double, Double> function) {
 		int rows = matrix.getRowDimension();
 		int columns = matrix.getColumnDimension();
 		RealMatrix result = createRealMatrix(rows, columns);
@@ -72,7 +68,62 @@ public abstract class Util {
 	}
 
 	public static RealMatrix initializeRandomWeights(RealMatrix matrix, double standardDeviation) {
-		return foreach(matrix, in -> RANDOM.nextGaussian() * standardDeviation);
+		return scalar(matrix, in -> RANDOM.nextGaussian() * standardDeviation);
+	}
+
+	/**
+	 * Lässt die Inhalte einer Matrix um den Mittelpunkt drehen.
+	 * 
+	 * @param img
+	 *            Die Matrix, die gedreht werden soll.
+	 * @param grad
+	 *            Wie viel Grad gedreht wird.
+	 * @return Die gedrehte Matrix mit der originalen Größe. Inhalte, die darüber hinausreichen
+	 *         werden abgeschnitten.
+	 */
+	public static int[][] rotateImg(int[][] img, double grad) {
+		double angle = Math.toRadians(grad);
+		int height = img.length;
+		int width = img[0].length;
+		int middelH = height / 2;
+		int middelW = width / 2;
+		int[][] result = new int[img.length][img[0].length];
+
+		int[] rotationMatrix2d = rotationMatrix2d(middelW, middelH, angle);
+		double x0 = middelW - rotationMatrix2d[0];
+		double y0 = middelH - rotationMatrix2d[1];
+
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+
+				int[] newKoordinate = rotationMatrix2d(x, y, angle);
+				int xRot = (int) (newKoordinate[0] + x0);
+				int yRot = (int) (newKoordinate[1] + y0);
+
+				if (xRot >= 0 && yRot >= 0 && xRot <= width - 1 && yRot <= height - 1)
+					result[y][x] = img[yRot][xRot];
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Berechnet einen Punkt, welcher um einen bestimmten Winkel vom Ausgangspunkt gedreht werden
+	 * soll mit der zweidimensionalen DrehMatrix.
+	 * 
+	 * @param x
+	 *            x-Koordinate
+	 * @param y
+	 *            y-Koordinate
+	 * @param angle
+	 *            Der Winkel, um den gedreht werden soll.
+	 * @return
+	 */
+	private static int[] rotationMatrix2d(int x, int y, double angle) {
+		int[] result = new int[2];
+		result[0] = (int) (x * Math.cos(angle) + y * Math.sin(angle));
+		result[1] = (int) (-x * Math.sin(angle) + y * Math.cos(angle));
+		return result;
 	}
 
 }

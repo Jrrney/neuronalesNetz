@@ -1,7 +1,12 @@
 package dietrich.jenny.informatik.neuronales.netz.internal;
 
 import java.awt.image.BufferedImage;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,7 +15,10 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 
-public class FileReader {
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+
+public class FileUtil {
 
 	/**
 	 * Liest alle Labels von einer IDX1-UBYTE Datei aus: <br>
@@ -102,5 +110,28 @@ public class FileReader {
 			}
 		}
 		return image;
+	}
+
+	public static List<RealMatrix> readWeights(Path filePath, int numLayers) throws IOException, ClassNotFoundException {
+		List<RealMatrix> weights = new ArrayList<>();
+		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filePath.toFile()))) {
+			for (int i = 0; i < numLayers - 1; i++) {
+				double[][] readedWeights = (double[][]) ois.readObject();
+				weights.add(MatrixUtils.createRealMatrix(readedWeights));
+			}
+		}
+		return weights;
+	}
+
+	public static void writeWeights(Path filePath, List<RealMatrix> weights) throws FileNotFoundException, IOException {
+		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filePath.toFile()))) {
+			weights.forEach(matrix -> {
+				try {
+					oos.writeObject(matrix.getData());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
+		}
 	}
 }

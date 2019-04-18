@@ -5,10 +5,8 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +15,6 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 
-import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
 public class MnistPanel extends JPanel {
@@ -88,23 +85,17 @@ public class MnistPanel extends JPanel {
 		labels[1] = 5;
 		labels[2] = 5;
 		List<int[][]> images = new ArrayList<>();
-		int[][] readImage = FileReader.readImage(Paths.get("./Unbenannt.png"));
+		int[][] readImage = FileUtil.readImage(Paths.get("./Unbenannt.png"));
 		images.add(readImage);
-		images.add(NeuralNetwork.rotateImg(readImage, 10));
-		images.add(NeuralNetwork.rotateImg(readImage, -10));
-		// int[] labels = FileReader.readLabels(Paths.get("./train-labels.idx1-ubyte"));
-		// List<int[][]> images = FileReader.readImages(Paths.get("./train-images.idx3-ubyte"));
-
-		try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("./weights"))) {
-			double[][] weightsInputHidden = (double[][]) ois.readObject();
-			double[][] weightsHiddenOutput = (double[][]) ois.readObject();
-			NeuralNetwork.WEIGHTS_INPUT_HIDDEN = MatrixUtils.createRealMatrix(weightsInputHidden);
-			NeuralNetwork.WEIGHTS_HIDDEN_OUTPUT = MatrixUtils.createRealMatrix(weightsHiddenOutput);
-		}
+		images.add(Util.rotateImg(readImage, 10));
+		images.add(Util.rotateImg(readImage, -10));
+		// int[] labels = FileUtil.readLabels(Paths.get("./train-labels.idx1-ubyte"));
+		// List<int[][]> images = FileUtil.readImages(Paths.get("./train-images.idx3-ubyte"));
+		NeuralNetwork.initializeWeights("./weights");
 
 		JFrame f = new JFrame();
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		f.setBounds(100, 100, 450, 300);
+		f.setBounds(100, 100, 380, 380);
 		JPanel contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
@@ -116,7 +107,7 @@ public class MnistPanel extends JPanel {
 		f.setContentPane(contentPane);
 		f.setVisible(true);
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 10000; i++) {
 			boolean ok = p.nextImage();
 			f.repaint();
 

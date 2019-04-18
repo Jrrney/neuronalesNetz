@@ -5,11 +5,7 @@ import static dietrich.jenny.informatik.neuronales.netz.internal.Util.multiplyEl
 import static dietrich.jenny.informatik.neuronales.netz.internal.Util.scalar;
 import static org.apache.commons.math3.linear.MatrixUtils.createRealMatrix;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,44 +32,50 @@ public class NeuralNetwork {
 	private final static int epochs = 2;
 	private final static double learning_rate = 0.1;
 
-	public static RealMatrix WEIGHTS_INPUT_HIDDEN;
-	public static RealMatrix WEIGHTS_HIDDEN_OUTPUT;
+	private static RealMatrix WEIGHTS_INPUT_HIDDEN;
+	private static RealMatrix WEIGHTS_HIDDEN_OUTPUT;
+	private static double[][] scaledImages;
+	private static int[] labels;
 
-	// Accuracy: 0.9766
-	public static void main(String[] args) throws IOException, ClassNotFoundException {
-		Path filePath = Paths.get("./train-labels.idx1-ubyte");
-		int[] labels = FileReader.readLabels(filePath);
-		List<int[][]> images = FileReader.readImages(Paths.get("./train-images.idx3-ubyte"));
+	public static void main(String[] args) throws ClassNotFoundException, IOException {
+		initializeMaterial("./train-labels.idx1-ubyte", "./train-images.idx3-ubyte");
+		initializeWeights("./weights");
+		train();
+	}
 
-		double[][] scaledImages = new double[images.size()][];
-		for (int i = 0; i < images.size(); i++)
-			scaledImages[i] = scale(Util.flat(images.get(i)));
+	public static void initializeMaterial(String labelFilePath, String imagesFilePath) throws IOException {
+		labels = FileUtil.readLabels(Paths.get(labelFilePath));
+		List<int[][]> trainingImages = FileUtil.readImages(Paths.get(imagesFilePath));
+		scaledImages = new double[trainingImages.size()][];
+		for (int i = 0; i < trainingImages.size(); i++)
+			scaledImages[i] = scale(Util.flat(trainingImages.get(i)));
 
 		// Alle Bilder um 10 Grad gedreht
-		double[][] roatedScaledImages_1 = new double[images.size()][];
-		for (int i = 0; i < images.size(); i++)
-			roatedScaledImages_1[i] = scale(Util.flat(rotateImg(images.get(i), 10)));
+		double[][] roatedScaledImages_1 = new double[trainingImages.size()][];
+		for (int i = 0; i < trainingImages.size(); i++)
+			roatedScaledImages_1[i] = scale(Util.flat(Util.rotateImg(trainingImages.get(i), 10)));
 
 		// Alle Bilder um -10 Grad gedreht
-		double[][] roatedScaledImages_2 = new double[images.size()][];
-		for (int i = 0; i < images.size(); i++)
-			roatedScaledImages_2[i] = scale(Util.flat(rotateImg(images.get(i), -10)));
+		double[][] roatedScaledImages_2 = new double[trainingImages.size()][];
+		for (int i = 0; i < trainingImages.size(); i++)
+			roatedScaledImages_2[i] = scale(Util.flat(Util.rotateImg(trainingImages.get(i), -10)));
+	}
 
-		Path weightsPath = Paths.get("./weights");
+	public static void initializeWeights(String weightsFilePath) throws ClassNotFoundException, IOException {
+		Path weightsPath = Paths.get(weightsFilePath);
 		if (Files.exists(weightsPath)) {
-			try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("./weights"))) {
-				double[][] weightsInputHidden = (double[][]) ois.readObject();
-				double[][] weightsHiddenOutput = (double[][]) ois.readObject();
-				WEIGHTS_INPUT_HIDDEN = MatrixUtils.createRealMatrix(weightsInputHidden);
-				WEIGHTS_HIDDEN_OUTPUT = MatrixUtils.createRealMatrix(weightsHiddenOutput);
-			}
+			List<RealMatrix> readWeights = FileUtil.readWeights(weightsPath, 3);
+			WEIGHTS_INPUT_HIDDEN = readWeights.get(0);
+			WEIGHTS_HIDDEN_OUTPUT = readWeights.get(1);
 		} else {
 			WEIGHTS_INPUT_HIDDEN = createRealMatrix(HIDDEN_NODES, INPUT_NODES);
 			WEIGHTS_HIDDEN_OUTPUT = createRealMatrix(OUTPUT_NODES, HIDDEN_NODES);
 			WEIGHTS_INPUT_HIDDEN = initializeRandomWeights(WEIGHTS_INPUT_HIDDEN, Math.pow(INPUT_NODES, -0.5));
 			WEIGHTS_HIDDEN_OUTPUT = initializeRandomWeights(WEIGHTS_HIDDEN_OUTPUT, Math.pow(HIDDEN_NODES, -0.5));
 		}
+	}
 
+	private static void train() {
 		for (int e = 0; e < epochs; e++) {
 			System.out.println("running epoch: " + (e + 1));
 			for (int i = 0; i < labels.length; i++) {
@@ -90,28 +92,6 @@ public class NeuralNetwork {
 				// train(inputs, targets);
 			}
 		}
-
-		int[] testLabels = FileReader.readLabels(Paths.get("./t10k-labels.idx1-ubyte"));
-		List<int[][]> testImages = FileReader.readImages(Paths.get("./t10k-images.idx3-ubyte"));
-
-		int correct = 0;
-		for (int i = 0; i < testLabels.length; i++) {
-			int correctLabel = testLabels[i];
-			RealMatrix predict = query(scale(Util.flat(testImages.get(i))));
-			int predictLabel = getMatchingOutput(predict);
-
-			if (predictLabel == correctLabel) {
-				correct++;
-			}
-		}
-
-		System.out.println("Accuracy: " + correct / (double) testLabels.length);
-
-		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("./weights"))) {
-			oos.writeObject(WEIGHTS_INPUT_HIDDEN.getData());
-			oos.writeObject(WEIGHTS_HIDDEN_OUTPUT.getData());
-		}
-
 	}
 
 	public static int getMatchingOutput(RealMatrix result) {
@@ -182,60 +162,4 @@ public class NeuralNetwork {
 		}
 		return target;
 	}
-
-	/**
-	 * Lässt die Inhalte einer Matrix um den Mittelpunkt drehen.
-	 * 
-	 * @param img
-	 *            Die Matrix, die gedreht werden soll.
-	 * @param grad
-	 *            Wie viel Grad gedreht wird.
-	 * @return Die gedrehte Matrix mit der originalen Größe. Inhalte, die darüber hinausreichen
-	 *         werden abgeschnitten.
-	 */
-	public static int[][] rotateImg(int[][] img, double grad) {
-		double angle = Math.toRadians(grad);
-		int height = img.length;
-		int width = img[0].length;
-		int middelH = height / 2;
-		int middelW = width / 2;
-		int[][] result = new int[img.length][img[0].length];
-
-		int[] rotationMatrix2d = rotationMatrix2d(middelW, middelH, angle);
-		double x0 = middelW - rotationMatrix2d[0];
-		double y0 = middelH - rotationMatrix2d[1];
-
-		for (int x = 0; x < width; x++) {
-			for (int y = 0; y < height; y++) {
-
-				int[] newKoordinate = rotationMatrix2d(x, y, angle);
-				int xRot = (int) (newKoordinate[0] + x0);
-				int yRot = (int) (newKoordinate[1] + y0);
-
-				if (xRot >= 0 && yRot >= 0 && xRot <= width - 1 && yRot <= height - 1)
-					result[y][x] = img[yRot][xRot];
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Berechnet einen Punkt, welcher um einen bestimmten Winkel vom Ausgangspunkt gedreht werden
-	 * soll mit der zweidimensionalen DrehMatrix.
-	 * 
-	 * @param x
-	 *            x-Koordinate
-	 * @param y
-	 *            y-Koordinate
-	 * @param angle
-	 *            Der Winkel, um den gedreht werden soll.
-	 * @return
-	 */
-	private static int[] rotationMatrix2d(int x, int y, double angle) {
-		int[] result = new int[2];
-		result[0] = (int) (x * Math.cos(angle) + y * Math.sin(angle));
-		result[1] = (int) (-x * Math.sin(angle) + y * Math.cos(angle));
-		return result;
-	}
-
 }
