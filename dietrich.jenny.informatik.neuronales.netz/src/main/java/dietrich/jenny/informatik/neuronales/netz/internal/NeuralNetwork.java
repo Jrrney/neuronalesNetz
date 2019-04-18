@@ -14,6 +14,11 @@ import java.util.List;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
+/**
+ * @author Jenny Dietrich
+ *
+ *         15.04.2019
+ */
 public class NeuralNetwork {
 
 	/**
@@ -29,13 +34,16 @@ public class NeuralNetwork {
 	 * Anzahl der Output-Neuronen. Diese entsprechen jeweils den Zahlen 0-9.
 	 */
 	private final static int OUTPUT_NODES = 10;
-	private final static int epochs = 2;
+	private final static int epochs = 5;
 	private final static double learning_rate = 0.1;
 
 	private static RealMatrix WEIGHTS_INPUT_HIDDEN;
 	private static RealMatrix WEIGHTS_HIDDEN_OUTPUT;
-	private static double[][] scaledImages;
+
 	private static int[] labels;
+	private static double[][] scaledImages;
+	private static double[][] roatedScaledImages_1;
+	private static double[][] roatedScaledImages_2;
 
 	public static void main(String[] args) throws ClassNotFoundException, IOException {
 		initializeMaterial("./train-labels.idx1-ubyte", "./train-images.idx3-ubyte");
@@ -50,13 +58,11 @@ public class NeuralNetwork {
 		for (int i = 0; i < trainingImages.size(); i++)
 			scaledImages[i] = scale(Util.flat(trainingImages.get(i)));
 
-		// Alle Bilder um 10 Grad gedreht
-		double[][] roatedScaledImages_1 = new double[trainingImages.size()][];
+		roatedScaledImages_1 = new double[trainingImages.size()][];
 		for (int i = 0; i < trainingImages.size(); i++)
 			roatedScaledImages_1[i] = scale(Util.flat(Util.rotateImg(trainingImages.get(i), 10)));
 
-		// Alle Bilder um -10 Grad gedreht
-		double[][] roatedScaledImages_2 = new double[trainingImages.size()][];
+		roatedScaledImages_2 = new double[trainingImages.size()][];
 		for (int i = 0; i < trainingImages.size(); i++)
 			roatedScaledImages_2[i] = scale(Util.flat(Util.rotateImg(trainingImages.get(i), -10)));
 	}
@@ -85,11 +91,11 @@ public class NeuralNetwork {
 				RealMatrix targets = createTarget(labels[i]);
 				train(inputs, targets);
 
-				// inputs = MatrixUtils.createColumnRealMatrix(roatedScaledImages_1[i]);
-				// train(inputs, targets);
-				//
-				// inputs = MatrixUtils.createColumnRealMatrix(roatedScaledImages_2[i]);
-				// train(inputs, targets);
+				inputs = MatrixUtils.createColumnRealMatrix(roatedScaledImages_1[i]);
+				train(inputs, targets);
+
+				inputs = MatrixUtils.createColumnRealMatrix(roatedScaledImages_2[i]);
+				train(inputs, targets);
 			}
 		}
 	}

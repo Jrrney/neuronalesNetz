@@ -18,6 +18,11 @@ import javax.imageio.ImageIO;
 import org.apache.commons.math3.linear.MatrixUtils;
 import org.apache.commons.math3.linear.RealMatrix;
 
+/**
+ * @author Jenny Dietrich
+ *
+ *         15.04.2019
+ */
 public class FileUtil {
 
 	/**

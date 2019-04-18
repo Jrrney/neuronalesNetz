@@ -8,6 +8,11 @@ import java.util.function.Function;
 
 import org.apache.commons.math3.linear.RealMatrix;
 
+/**
+ * @author Jenny Dietrich
+ *
+ *         15.04.2019
+ */
 public abstract class Util {
 
 	private final static Random RANDOM = new Random();
